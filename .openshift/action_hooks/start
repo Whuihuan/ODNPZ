@@ -1,0 +1,18 @@
+#!/bin/bash
+# The logic to start up your application should be put in this
+# script. The application will work only if it binds to
+# $OPENSHIFT_DIY_IP:8080
+
+#退出上一个错误
+set -e
+
+#载入全局
+source ${OPENSHIFT_REPO_DIR}/.openshift/action_hooks/common
+
+#启动nginx
+echo "正在启动nginx。"
+${OPENSHIFT_HOMEDIR}/diy/runtime/nginx/sbin/nginx
+
+#启动php-fpm
+echo "正在启动php-fpm。"
+${OPENSHIFT_HOMEDIR}/diy/runtime/php5/sbin/php-fpm

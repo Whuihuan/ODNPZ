@@ -1,0 +1,55 @@
+#!/bin/sh
+
+#退出上一个错误
+set -e
+
+#载入全局
+source ${OPENSHIFT_REPO_DIR}/.openshift/action_hooks/common
+
+#设置相对目录
+BUILD_DIR=${OPENSHIFT_TMP_DIR}/build
+NGINX_DIR=${OPENSHIFT_RUNTIME_DIR}/nginx/
+PHP_DIR=${OPENSHIFT_RUNTIME_DIR}/php5/
+TEMPLATE_DIR=${OPENSHIFT_REPO_DIR}/.openshift/tmpl
+ZGL_DIR=${PHP_DIR}/lib/php/extensions/no-debug-non-zts-20090626/ZendGuardLoader.so
+
+#设置权限
+umask 077
+
+#建立编译目录
+mkdir -p ${BUILD_DIR}
+
+echo "正在预处理nginx配置。"
+cp ${TEMPLATE_DIR}/nginx.conf.tmpl ${BUILD_DIR}/nginx.conf
+perl -p -i -e 's/\$\{([^}]+)\}/defined $ENV{$1} ? $ENV{$1} : $&/eg' ${BUILD_DIR}/nginx.conf
+cp ${BUILD_DIR}/nginx.conf ${NGINX_DIR}/conf/nginx.conf
+
+echo "正在预处理PHP-fpm配置。"
+cp ${TEMPLATE_DIR}/php-fpm.conf.tmpl ${BUILD_DIR}/php-fpm.conf
+perl -p -i -e 's/\$\{([^}]+)\}/defined $ENV{$1} ? $ENV{$1} : $&/eg' ${BUILD_DIR}/php-fpm.conf
+cp ${BUILD_DIR}/php-fpm.conf ${PHP_DIR}/etc/php-fpm.conf
+
+echo "正在预处理PHP.ini。"
+cp ${TEMPLATE_DIR}/php.ini.tmpl ${BUILD_DIR}/php.ini
+perl -p -i -e 's/\$\{([^}]+)\}/defined $ENV{$1} ? $ENV{$1} : $&/eg' ${BUILD_DIR}/php.ini
+cp ${BUILD_DIR}/php.ini ${OPENSHIFT_RUNTIME_DIR}/etc/php5/php.ini
+
+echo "正在预处理Zend配置"
+cp ${TEMPLATE_DIR}/zgl.ini.tmpl ${BUILD_DIR}/zgl.ini
+cp ${TEMPLATE_DIR}/ZendGuardLoader.so ${PHP_DIR}/lib/php/extensions/no-debug-non-zts-20090626/ZendGuardLoader.so
+perl -p -i -e 's/\$\{([^}]+)\}/defined $ENV{$1} ? $ENV{$1} : $&/eg' ${BUILD_DIR}/zgl.ini
+echo ${ZGL_DIR} >>${BUILD_DIR}/zgl.ini
+echo >>${BUILD_DIR}/zgl.ini
+echo zend_loader.enable=1 >>${BUILD_DIR}/zgl.ini
+cp ${BUILD_DIR}/zgl.ini ${OPENSHIFT_RUNTIME_DIR}/etc/php5/conf.d/zgl.ini
+
+#删除编译目录。
+rm -rf ${BUILD_DIR}
+
+bash_profile=${OPENSHIFT_DATA_DIR}/.bash_profile
+if [[ ! -e  ${bash_profile} ]]; then
+    echo "正在复制bash配置。"
+    cp ${TEMPLATE_DIR}/bash_profile.tmpl ${bash_profile}
+fi
+
+killall ruby
