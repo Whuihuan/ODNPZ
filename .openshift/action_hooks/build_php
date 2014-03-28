@@ -100,7 +100,7 @@ function install_php() {
     pushd ${BUILD_DIR}
 
     echo "正在下载${pkg}。"
-    wget http://museum.php.net/php5/${pkg}
+    wget http://us1.php.net/distributions/${pkg}
 
     echo "正在解压${pkg}。"
     tar xfz ${pkg}
